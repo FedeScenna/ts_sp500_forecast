@@ -1,0 +1,681 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CSV Chat Analyzer</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+            min-height: 100vh;
+            padding: 20px;
+            color: #e0e0e0;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: rgba(26, 26, 46, 0.95);
+            border-radius: 15px;
+            overflow: hidden;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+            backdrop-filter: blur(10px);
+            border: 1px solid #333;
+        }
+        
+        .header {
+            background: linear-gradient(90deg, #667eea, #764ba2);
+            color: white;
+            padding: 20px;
+            text-align: center;
+        }
+        
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+        }
+        
+        .header p {
+            opacity: 0.9;
+            font-size: 1.1em;
+        }
+        
+        .main-content {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 600px;
+            padding: 20px;
+        }
+        
+        .sidebar {
+            background: #1e1e2e;
+            padding: 25px;
+            border-right: 1px solid #333;
+        }
+        
+        .data-status-section {
+            margin-bottom: 30px;
+        }
+        
+        .data-status {
+            border: 2px solid #667eea;
+            border-radius: 10px;
+            padding: 30px;
+            text-align: center;
+            background: #2a2a3e;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+            color: #e0e0e0;
+        }
+        
+        .data-status.loaded {
+            border-color: #28a745;
+            background: #1e3a1e;
+        }
+        
+        .data-status.no-data {
+            border-color: #ffc107;
+            background: #3a2e1e;
+        }
+        
+        .status-icon {
+            font-size: 3em;
+            margin-bottom: 15px;
+        }
+        
+        .data-info {
+            background: #2a2a3e;
+            border-radius: 10px;
+            padding: 20px;
+            margin-top: 20px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+            color: #e0e0e0;
+        }
+        
+        .data-info h3 {
+            color: #e0e0e0;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .data-stats {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-top: 15px;
+        }
+        
+        .stat-item {
+            background: #1e1e2e;
+            padding: 12px;
+            border-radius: 8px;
+            text-align: center;
+            border: 1px solid #333;
+        }
+        
+        .stat-value {
+            font-size: 1.5em;
+            font-weight: bold;
+            color: #667eea;
+        }
+        
+        .stat-label {
+            font-size: 0.9em;
+            color: #b0b0b0;
+        }
+        
+        .chat-container {
+            display: flex;
+            flex-direction: column;
+            height: 600px;
+            width: 100%;
+            max-width: 800px;
+        }
+        
+        .chat-header {
+            background: #667eea;
+            color: white;
+            padding: 15px 25px;
+            font-weight: 600;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .export-btn {
+            background: rgba(255, 255, 255, 0.2);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            color: white;
+            padding: 8px 16px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 0.9em;
+            transition: all 0.3s ease;
+        }
+        
+        .export-btn:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+        
+        .chat-messages {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+            background: #1a1a2e;
+        }
+        
+        .message {
+            margin-bottom: 20px;
+            animation: fadeIn 0.5s ease;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .message.user {
+            text-align: right;
+        }
+        
+        .message.assistant {
+            text-align: left;
+        }
+        
+        .message-bubble {
+            display: inline-block;
+            max-width: 80%;
+            padding: 15px 20px;
+            border-radius: 20px;
+            word-wrap: break-word;
+        }
+        
+        .message.user .message-bubble {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+        }
+        
+        .message.assistant .message-bubble {
+            background: #2a2a3e;
+            color: #e0e0e0;
+            border: 1px solid #333;
+        }
+        
+        .visualization {
+            margin-top: 15px;
+            text-align: center;
+        }
+        
+        .visualization img {
+            max-width: 100%;
+            border-radius: 10px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+            background: #1a1a2e;
+        }
+        
+        .analysis-results {
+            margin-top: 15px;
+            background: #2d1b1b;
+            border: 1px solid #4a2c2c;
+            border-radius: 10px;
+            padding: 15px;
+            color: #e0e0e0;
+        }
+        
+        .analysis-results h4 {
+            color: #ffb366;
+            margin-bottom: 10px;
+        }
+        
+        .chat-input {
+            padding: 20px;
+            background: #1e1e2e;
+            border-top: 1px solid #333;
+        }
+        
+        .input-container {
+            display: flex;
+            gap: 10px;
+        }
+        
+        .message-input {
+            flex: 1;
+            padding: 15px;
+            border: 1px solid #444;
+            border-radius: 25px;
+            outline: none;
+            font-size: 1em;
+            transition: all 0.3s ease;
+            background: #2a2a3e;
+            color: #e0e0e0;
+        }
+        
+        .message-input::placeholder {
+            color: #888;
+        }
+        
+        .message-input:focus {
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.2);
+        }
+        
+        .send-btn {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            border: none;
+            padding: 15px 25px;
+            border-radius: 25px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+        
+        .send-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.3);
+        }
+        
+        .send-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 20px;
+            color: #b0b0b0;
+        }
+        
+        .spinner {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid #333;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-right: 10px;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .error {
+            color: #ff6b6b;
+            background: #2d1b1b;
+            border: 1px solid #4a2c2c;
+            padding: 10px;
+            border-radius: 5px;
+            margin: 10px 0;
+        }
+        
+        .success {
+            color: #51cf66;
+            background: #1b2d1b;
+            border: 1px solid #2c4a2c;
+            padding: 10px;
+            border-radius: 5px;
+            margin: 10px 0;
+        }
+        
+        @media (max-width: 768px) {
+            .main-content {
+                padding: 10px;
+            }
+            
+            .container {
+                margin: 10px;
+            }
+            
+            .header h1 {
+                font-size: 2em;
+            }
+            
+            .message-bubble {
+                max-width: 90%;
+            }
+            
+            .chat-container {
+                max-width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Data Analyzer</h1>
+            <p>Start a conversation with your data</p>
+        </div>
+        
+        <div class="main-content">
+            
+            <div class="chat-container">
+                <div class="chat-header">
+                    <span>💬 Chat with your data</span>
+                    <button class="export-btn" onclick="exportAnalysis()" style="display: none;" id="exportBtn">
+                        💾 Export Analysis
+                    </button>
+                </div>
+                
+                <div class="chat-messages" id="chatMessages">
+                    <div class="message assistant">
+                        <div class="message-bubble">
+                            👋 Hello! I'm ready to analyze CSV data from your data folder. I can help you with:
+                            <br><br>
+                            • Basic statistics and summaries
+                            <br>• Anomaly detection
+                            <br>• Data visualizations
+                            <br>• Correlation analysis
+                            <br>• Custom insights and questions
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="loading" id="loading">
+                    <div class="spinner"></div>
+                    Analyzing your request...
+                </div>
+                
+                <div class="chat-input">
+                    <div class="input-container">
+                        <input type="text" class="message-input" id="messageInput" 
+                               placeholder="Ask me anything about your data...">
+                        <button class="send-btn" id="sendBtn" onclick="sendMessage()">Send</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let dataUploaded = false;
+
+        // Check for pre-loaded data on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            checkDataStatus();
+        });
+
+        function checkDataStatus() {
+            fetch('/data-status')
+            .then(response => response.json())
+            .then(data => {
+                const dataStatus = document.getElementById('dataStatus');
+                
+                if (data.loaded) {
+                    dataUploaded = true;
+                    updateDataInfo(data.data_info);
+                    document.getElementById('exportBtn').style.display = 'block';
+                    
+                    // Update data status display
+                    dataStatus.className = 'data-status loaded';
+                    dataStatus.innerHTML = `
+                        <div class="status-icon">✅</div>
+                        <p><strong>Dataset Loaded</strong></p>
+                        <p>${data.data_info.shape[0]} rows × ${data.data_info.shape[1]} columns</p>
+                    `;
+                    
+                    // Show initial welcome message
+                    showMessage('assistant', 
+                        `🎉 Great! Your CSV dataset is ready with ${data.data_info.shape[0]} rows and ${data.data_info.shape[1]} columns. ` +
+                        `I can help you explore the data, find patterns, detect anomalies, and create visualizations. What would you like to know?`
+                    );
+                    
+                    // Show suggestions based on data
+                    if (data.basic_analysis && data.basic_analysis.numeric_stats) {
+                        const numCols = Object.keys(data.basic_analysis.numeric_stats).length;
+                        if (numCols > 1) {
+                            showMessage('assistant', 
+                                `💡 Some things you can try:\n` +
+                                `• "Show me correlations between variables"\n` +
+                                `• "Detect any anomalies or outliers"\n` +
+                                `• "What are the main insights from this data?"\n` +
+                                `• "Create a summary of key statistics"`
+                            );
+                        }
+                    }
+                } else {
+                    // No data loaded - but keep input enabled so user can ask questions
+                    dataStatus.className = 'data-status no-data';
+                    dataStatus.innerHTML = `
+                        <div class="status-icon">⚠️</div>
+                        <p><strong>No Data Found</strong></p>
+                        <p>Add a CSV file to the /data folder and restart the app</p>
+                    `;
+                    
+                    showMessage('assistant', 
+                        `👋 Hello! I don't see any CSV files in the data folder. ` +
+                        `To get started:\n\n` +
+                        `1. Create a 'data' folder in your project\n` +
+                        `2. Add your CSV file to that folder\n` +
+                        `3. Restart the application\n\n` +
+                        `Then I'll be ready to analyze your data!`
+                    );
+                }
+            })
+            .catch(error => {
+                console.log('Error checking data status:', error);
+                const dataStatus = document.getElementById('dataStatus');
+                dataStatus.className = 'data-status no-data';
+                dataStatus.innerHTML = `
+                    <div class="status-icon">❌</div>
+                    <p><strong>Connection Error</strong></p>
+                    <p>Unable to check data status</p>
+                `;
+            });
+        }
+
+        // Check for pre-loaded data on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            checkDataStatus();
+        });
+
+        // File upload functionality removed - now reads only from data folder
+        const messageInput = document.getElementById('messageInput');
+        const sendBtn = document.getElementById('sendBtn');
+
+        // Enter key to send message
+        messageInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter' && !sendBtn.disabled) {
+                sendMessage();
+            }
+        });
+
+        function updateDataInfo(dataInfo) {
+            document.getElementById('dataInfo').style.display = 'block';
+            document.getElementById('rowCount').textContent = dataInfo.shape[0].toLocaleString();
+            document.getElementById('colCount').textContent = dataInfo.shape[1];
+            document.getElementById('numericCount').textContent = dataInfo.numeric_columns.length;
+            
+            const totalMissing = Object.values(dataInfo.missing_values).reduce((a, b) => a + b, 0);
+            document.getElementById('missingCount').textContent = totalMissing;
+
+            // Show column list
+            const columnsList = document.getElementById('columnsList');
+            columnsList.innerHTML = `
+                <div style="background: #e3f2fd; padding: 12px; border-radius: 8px; margin-top: 10px;">
+                    <strong>📋 Columns:</strong><br>
+                    <small style="color: #666; line-height: 1.4;">
+                        ${dataInfo.columns.slice(0, 8).join(', ')}
+                        ${dataInfo.columns.length > 8 ? `... and ${dataInfo.columns.length - 8} more` : ''}
+                    </small>
+                </div>
+            `;
+        }
+
+        function sendMessage() {
+            const message = messageInput.value.trim();
+            if (!message) return;
+
+            // Allow sending messages even if no data is loaded (for help/instructions)
+            showMessage('user', message);
+            messageInput.value = '';
+            
+            // Temporarily disable send button to prevent spam
+            sendBtn.disabled = true;
+            setTimeout(() => { sendBtn.disabled = false; }, 1000);
+            
+            showLoading(true);
+
+            fetch('/chat', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ message: message })
+            })
+            .then(response => response.json())
+            .then(data => {
+                showLoading(false);
+                
+                if (data.error) {
+                    showMessage('assistant', `❌ ${data.error}`, 'error');
+                    return;
+                }
+
+                // Show AI response
+                showMessage('assistant', data.message);
+
+                // Show visualizations if any
+                if (data.visualizations && data.visualizations.length > 0) {
+                    data.visualizations.forEach(viz => {
+                        showVisualization(viz.data, viz.title);
+                    });
+                }
+
+                // Show analysis results if any
+                if (data.analysis_results) {
+                    showAnalysisResults(data.analysis_results);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                showLoading(false);
+                showMessage('assistant', '❌ Error processing your request. Please try again.', 'error');
+            });
+        }
+
+        function showMessage(sender, content, type = '') {
+            const chatMessages = document.getElementById('chatMessages');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${sender}`;
+
+            let bubbleClass = 'message-bubble';
+            if (type === 'error') {
+                bubbleClass += ' error';
+            } else if (type === 'success') {
+                bubbleClass += ' success';
+            }
+
+            messageDiv.innerHTML = `
+                <div class="${bubbleClass}">
+                    ${content.replace(/\n/g, '<br>')}
+                </div>
+            `;
+
+            chatMessages.appendChild(messageDiv);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+
+        function showVisualization(imageData, title) {
+            const chatMessages = document.getElementById('chatMessages');
+            const vizDiv = document.createElement('div');
+            vizDiv.className = 'message assistant';
+            
+            vizDiv.innerHTML = `
+                <div class="message-bubble">
+                    <div class="visualization">
+                        <h4 style="margin-bottom: 10px; color: #333;">📊 ${title}</h4>
+                        <img src="data:image/png;base64,${imageData}" alt="${title}">
+                    </div>
+                </div>
+            `;
+
+            chatMessages.appendChild(vizDiv);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+
+        function showAnalysisResults(results) {
+            const chatMessages = document.getElementById('chatMessages');
+            const resultDiv = document.createElement('div');
+            resultDiv.className = 'message assistant';
+            
+            let content = '';
+            
+            if (results.type === 'anomaly_detection' && results.data) {
+                const data = results.data;
+                content = `
+                    <div class="analysis-results">
+                        <h4>🔍 Anomaly Detection Results</h4>
+                        <p><strong>Total anomalies found:</strong> ${data.total_anomalies} (${data.anomaly_percentage}% of data)</p>
+                        <p><strong>Columns analyzed:</strong> ${data.columns_analyzed.join(', ')}</p>
+                        
+                        ${data.sample_anomalies.length > 0 ? `
+                            <div style="margin-top: 15px;">
+                                <strong>Sample anomalies:</strong>
+                                <div style="background: white; padding: 10px; border-radius: 5px; margin-top: 5px; font-size: 0.9em;">
+                                    ${data.sample_anomalies.slice(0, 3).map(anomaly => 
+                                        Object.entries(anomaly).map(([key, value]) => 
+                                            `<strong>${key}:</strong> ${value}`
+                                        ).join(', ')
+                                    ).join('<br>')}
+                                </div>
+                            </div>
+                        ` : ''}
+                    </div>
+                `;
+            }
+
+            if (content) {
+                resultDiv.innerHTML = `<div class="message-bubble">${content}</div>`;
+                chatMessages.appendChild(resultDiv);
+                chatMessages.scrollTop = chatMessages.scrollHeight;
+            }
+        }
+
+        function showLoading(show) {
+            document.getElementById('loading').style.display = show ? 'block' : 'none';
+        }
+
+        function exportAnalysis() {
+            if (!dataUploaded) {
+                alert('No analysis to export yet. Upload data and chat first!');
+                return;
+            }
+
+            window.open('/export', '_blank');
+        }
+
+        // Quick action buttons (you can add these later)
+        function quickAnalysis(type) {
+            if (!dataUploaded) return;
+            
+            const queries = {
+                'correlation': 'Show me the correlation matrix for all numeric columns',
+                'anomalies': 'Detect anomalies in my data',
+                'summary': 'Give me a summary of the key insights from this dataset',
+                'distributions': 'Show me the distributions of the main variables'
+            };
+            
+            if (queries[type]) {
+                messageInput.value = queries[type];
+                sendMessage();
+            }
+        }
+    </script>
+</body>
+</html>

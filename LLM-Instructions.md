@@ -1,0 +1,1 @@
+In a separate python file create a transformer for time series. I have a dataframe with Date, Ticker and close price. 
